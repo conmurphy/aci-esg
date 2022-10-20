@@ -1,0 +1,111 @@
+---
+apic:
+  tenants:
+    - name: conmurph-esg
+
+      vrfs:
+        - name: production
+
+      bridge_domains: 
+        - name: 192.168.30.0
+          vrf: production
+          subnets: 
+          - ip: 192.168.30.254/24 
+        - name: 192.168.40.0
+          vrf: production
+          subnets: 
+          - ip: 192.168.40.254/24 
+        - name: 192.168.50.0
+          vrf: production
+          subnets: 
+          - ip: 192.168.50.254/24 
+
+      application_profiles:
+        - name: esg-demo
+          endpoint_groups:
+            - name: client-vmware-cluster-1
+              bridge_domain: 192.168.30.0
+              vmware_vmm_domains:
+                - name: DM_VMM
+                  u_segmentation: true
+                  primary_vlan: 921
+                  secondary_vlan: 922
+                  delimiter: '|'
+                  deployment_immediacy: immediate
+                  resolution_immediacy: immediate
+            - name: client-vmware-cluster-2
+              bridge_domain: 192.168.40.0
+              vmware_vmm_domains:
+                - name: DM_VMM
+                  u_segmentation: true
+                  primary_vlan: 923
+                  secondary_vlan: 924
+                  delimiter: '|'
+                  deployment_immediacy: immediate
+                  resolution_immediacy: immediate
+            - name: server
+              bridge_domain: 192.168.50.0
+              vmware_vmm_domains:
+                - name: DM_VMM
+                  u_segmentation: true
+                  primary_vlan: 925
+                  secondary_vlan: 926
+                  delimiter: '|'
+                  deployment_immediacy: immediate
+                  resolution_immediacy: immediate
+          endpoint_security_groups:
+          - name: clients
+            vrf: production
+            shutdown: false
+            intra_esg_isolation: false
+            preferred_group: false
+            contracts:
+              consumers:
+                - icmp
+            tag_selectors:
+              - key: __vmmvmname
+                operator: equals
+                value: conmurph-esg-demo-client-1
+              - key: conmurph-esg-demo
+                operator: equals
+                value: clients
+          - name: servers
+            vrf: production
+            shutdown: false
+            intra_esg_isolation: false
+            preferred_group: false
+            contracts:
+              providers:
+                - icmp
+            ip_subnet_selectors:
+              - value: 192.168.50.1/32
+
+      filters:
+        - name: icmp
+          entries:
+            - name: icmp
+              ethertype: ip
+              protocol: icmp
+        - name: web
+          entries:
+            - name: http
+              ethertype: ip
+              protocol: tcp
+              destination_from_port: http
+              destination_to_port: http
+
+      contracts:
+        - name: icmp
+          subjects:
+            - name: icmp
+              filters:
+                - filter: icmp
+            - name: web
+              filters:
+                - filter: web
+        - name: web
+          subjects:
+            - name: web
+              filters:
+                - filter: web
+        
